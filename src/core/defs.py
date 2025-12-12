@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Protocol
+from typing import Any, Callable, Dict, Protocol
 import os
 
 from langchain_anthropic import ChatAnthropic
@@ -15,22 +15,11 @@ class TaskType(Enum):
     Completion = "Completion"
  
 @dataclass
-class ModelRunner(Protocol):
+class GenerationResult:
     model: str
     provider: str
-    task: TaskType
-    client: ChatGoogleGenerativeAI | ChatOpenAI | ChatAnthropic
-
-
-    def generate(self, query: str) -> str:
-        ...
-
-@dataclass
-class GenerationResult(Protocol):
-    model: str
-    provider: str
-    task: TaskType
-    client: ChatAnthropic | ChatOpenAI | ChatGoogleGenerativeAI
+    task: str
+    # client: ChatAnthropic | ChatOpenAI | ChatGoogleGenerativeAI
     response_text: str
     response_metadata: Dict[str, Any]
     usage_metadata: Dict[str, Any]
@@ -42,3 +31,16 @@ def load_env(name: str) -> SecretStr:
         raise RuntimeError(f"Requied env {name} is not set.")
 
     return SecretStr(value)
+
+ParseFn = Callable[[Any], str]
+
+@dataclass
+class ModelRunner(Protocol):
+    model: str
+    provider: str
+    task: TaskType
+    client: ChatGoogleGenerativeAI | ChatOpenAI | ChatAnthropic
+
+
+    def generate(self, query: str, process_fn: ParseFn | None=None) -> GenerationResult:
+        ...
