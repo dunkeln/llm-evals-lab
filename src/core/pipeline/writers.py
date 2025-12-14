@@ -1,17 +1,27 @@
 from dataclasses import asdict
-from src.core.defs import GenerationResult
+from typing import Tuple
+from src.core.defs import GenerationResult, JSONLResponse
 from src.config import PROJECT_ROOT
 from pathlib import Path
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 DUMP_DIR = PROJECT_ROOT / "data" / "raw"
 
 def write_result_to_jsonl(
+    dataset: JSONLResponse,
     results: list[GenerationResult]
-) -> Path:
+) -> Tuple[Path, Path]:
     DUMP_DIR.mkdir(parents=True, exist_ok=True)
-    out_path = DUMP_DIR / f"{results[0].task}-{datetime.now()}.jsonl"
+    run_ts = datetime.now(timezone.utc).isoformat()
+
+    samples_path = DUMP_DIR / f"{results[0].task}-data-{run_ts}.jsonl"
+    out_path = DUMP_DIR / f"{results[0].task}-{run_ts}.jsonl"
+
+    with samples_path.open("w") as f:
+        for sample in dataset.samples:
+            record = sample.model_dump()
+            f.write(json.dumps(record) + "\n")
 
     with out_path.open("w") as f:
         for res in results:
@@ -20,4 +30,4 @@ def write_result_to_jsonl(
             }
             f.write(json.dumps(record) + "\n")
 
-    return out_path
+    return samples_path, out_path
