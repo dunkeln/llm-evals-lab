@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, Protocol
+from typing import Any, Callable, Dict, Optional, Protocol
 import os
 
 from langchain_anthropic import ChatAnthropic
@@ -43,6 +43,7 @@ class GenerationResult:
     usage_metadata: Dict[str, Any]
     run_timestamp: str                                                      # INFO: ISO string
     reasoning_result: ReasoningResult | None = None
+    metrics: Optional[Dict[str, float]] = None
 
 
 def load_env(name: str) -> SecretStr:
@@ -62,5 +63,5 @@ class ModelRunner(Protocol):
     client: ChatGoogleGenerativeAI | ChatOpenAI | ChatAnthropic
 
 
-    def generate(self, id: str, query: str, process_fn: ParseFn | None=None) -> GenerationResult:
+    def generate(self, id: str, query: str, answer: str, process_fn: ParseFn | None=None) -> GenerationResult:
         ...

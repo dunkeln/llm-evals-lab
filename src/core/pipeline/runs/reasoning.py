@@ -21,9 +21,10 @@ if __name__ == '__main__':
     for sample in samples:
         rows: list[GenerationResult] = []
         query = sample.question
+        ref_answer = sample.answer
         id = sample.id
         for runner in runners:
-            rec = runner.generate(id, query)
+            rec = runner.generate(id, query, ref_answer)
             print(rec)
             rows.append(rec)
 

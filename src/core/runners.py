@@ -14,6 +14,8 @@ import os
 
 from typing import Any, Generic, Type, TypeVar, cast
 
+from src.core.metrics import get_metrics
+
 load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
 
@@ -55,7 +57,7 @@ class OpenAIRunner(ModelRunner):
         self.client = ChatOpenAI(model=self.model, api_key=load_env("OPENAI_API_KEY"))
         self.task = task
 
-    def generate(self, id: str, query: str, process_fn=None) -> GenerationResult:
+    def generate(self, id: str, query: str, answer: str, process_fn=None) -> GenerationResult:
         resp = self.client.invoke(query)
         text = process_fn(resp) if process_fn is not None else resp.content
 
@@ -71,7 +73,8 @@ class OpenAIRunner(ModelRunner):
             response_text=text,
             response_metadata=getattr(resp, "response_metadata", {}),
             usage_metadata=getattr(resp, "usage_metadata", {}),
-            run_timestamp=now
+            run_timestamp=now,
+            metrics=get_metrics(text, answer)
         )
 
 
@@ -82,7 +85,7 @@ class ClaudeRunner(ModelRunner):
         self.client = ChatAnthropic(model_name=self.model, api_key=load_env("CLAUDE_API_KEY"))          # type: ignore
         self.task = task
 
-    def generate(self, id: str, query: str, process_fn=None) -> GenerationResult:
+    def generate(self, id: str, query: str, answer: str, process_fn=None) -> GenerationResult:
         resp = self.client.invoke(query)
         text = process_fn(resp) if process_fn is not None else resp.content
 
@@ -98,7 +101,8 @@ class ClaudeRunner(ModelRunner):
             response_text=text,
             response_metadata=getattr(resp, "response_metadata", {}),
             usage_metadata=getattr(resp, "usage_metadata", {}),
-            run_timestamp=now
+            run_timestamp=now,
+            metrics=get_metrics(text, answer)
         )
 
 class GeminiRunner(ModelRunner):
@@ -108,7 +112,7 @@ class GeminiRunner(ModelRunner):
         self.client = ChatGoogleGenerativeAI(model=self.model, api_key=load_env("GEMINI_API_KEY"))
         self.task = task
 
-    def generate(self, id: str, query: str, process_fn=None) -> GenerationResult:
+    def generate(self, id: str, query: str, answer: str, process_fn=None) -> GenerationResult:
         resp = self.client.invoke(query)
         text = process_fn(resp) if process_fn is not None else resp.content
 
@@ -124,7 +128,8 @@ class GeminiRunner(ModelRunner):
             response_text=text,
             response_metadata=getattr(resp, "response_metadata", {}),
             usage_metadata=getattr(resp, "usage_metadata", {}),
-            run_timestamp=now
+            run_timestamp=now,
+            metrics=get_metrics(text, answer)
         )
 
 if __name__ == "__main__":
