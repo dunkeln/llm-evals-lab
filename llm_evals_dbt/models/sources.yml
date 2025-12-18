@@ -6,3 +6,4 @@ sources:
     tables:
       - name: models_reasoning
       - name: models_reasoning_data
+      - name: models_reasoning_metadata
