@@ -20,9 +20,15 @@ class JSONResponse(BaseModel):
     answer: str
     explanation: str
     difficulty: str
+    metadata: str
 
 class JSONLResponse(BaseModel):
+    id: str
     batch: int = Field(..., description="number of samples")
+    model: str
+    temperature: float
+    top_p: float
+    max_tokens: float
     samples: list[JSONResponse]
 
 @dataclass

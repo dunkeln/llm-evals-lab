@@ -9,7 +9,7 @@ if __name__ == '__main__':
     synthesizer = SynthesizerModel(model="gpt-4o")
     runners = [
         OpenAIRunner(),
-        ClaudeRunner(),
+        ClaudeRunner(temperature=0.1),
         GeminiRunner(),
     ]
 
@@ -25,12 +25,14 @@ if __name__ == '__main__':
         id = sample.id
         for runner in runners:
             rec = runner.generate(id, query, ref_answer)
-            print(rec)
             rows.append(rec)
 
         records.extend(rows)
 
-    dataset_path, jsonl_path = write_result_to_jsonl(dataset, records)
-    ingest_jsonl_to_raw(dataset_path, jsonl_path, table_name="models_reasoning")
+    print("dataset")
+    print(dataset)
+
+    metadata_path, dataset_path, jsonl_path = write_result_to_jsonl(dataset, records)
+    ingest_jsonl_to_raw(metadata_path, dataset_path, jsonl_path, table_name="models_reasoning")
 
     print("done")

@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import time
 import uuid
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -23,9 +24,18 @@ T = TypeVar("T", bound=BaseModel)
 
 class SynthesizerModel(Generic[T]):
     # TODO: for now chatgpt is the only model, need to be provider agnostic
-    def __init__(self, model: str, output_model: Type[T]=JSONLResponse) -> None:
+    def __init__(self, model: str, output_model: Type[T]=JSONLResponse, temperature=0.0, top_p=1.0, max_tokens=512) -> None:
         self.model = model
-        self.client = ChatOpenAI(model=self.model, api_key=load_env("OPENAI_API_KEY"))
+        self.temperature = temperature
+        self.top_p = top_p
+        self.max_tokens = max_tokens
+        self.client = ChatOpenAI(
+            model=self.model,
+            api_key=load_env("OPENAI_API_KEY"),
+            temperature=self.temperature,
+            top_p=self.top_p,
+            max_completion_tokens=self.max_tokens
+        )
         self.output_model = output_model
         self.structured_client = self.client.with_structured_output(self.output_model)
 
@@ -45,21 +55,43 @@ class SynthesizerModel(Generic[T]):
             messages.append(SystemMessage(content=system_prompt))
         messages.append(HumanMessage(content=query))
 
-        result = self.structured_client.invoke(messages)
+        result: JSONLResponse = cast(JSONLResponse, self.structured_client.invoke(messages))
+        result.id = str(uuid.uuid4())
         for sample in result.samples:
             sample.id = str(uuid.uuid4())
+            sample.metadata = result.id
+        result.model = self.model
+        result.temperature = self.temperature
+        result.top_p = self.top_p
+        result.max_tokens = self.max_tokens
         return result
 
 class OpenAIRunner(ModelRunner):
-    def __init__(self, model="gpt-4.1", provider="openai", task=TaskType.Completion):
+    def __init__(self, model="gpt-4.1", provider="openai", task=TaskType.Completion, temperature=0.0, top_p=1.0, max_tokens=512):
         self.model = model
         self.provider = provider
-        self.client = ChatOpenAI(model=self.model, api_key=load_env("OPENAI_API_KEY"))
+        self.temperature = temperature
+        self.top_p = top_p
+        self.max_tokens = max_tokens
+        self.client = ChatOpenAI(
+            model=self.model,
+            api_key=load_env("OPENAI_API_KEY"),
+            temperature=self.temperature,
+            top_p=self.top_p,
+            max_completion_tokens=self.max_tokens
+        )
         self.task = task
 
     def generate(self, id: str, query: str, answer: str, process_fn=None) -> GenerationResult:
+        start = time.time()
         resp = self.client.invoke(query)
+        end = time.time()
         text = process_fn(resp) if process_fn is not None else resp.content
+        usage = getattr(resp, 'usage_metadata')
+        usage['latency'] = end - start
+        usage['temperature'] = self.temperature
+        usage['max_tokens'] = self.max_tokens
+        usage['top_p'] = self.top_p
 
         if not isinstance(text, str):
             raise ValueError("process_fn should parse content to `str` type only")
@@ -74,20 +106,38 @@ class OpenAIRunner(ModelRunner):
             response_metadata=getattr(resp, "response_metadata", {}),
             usage_metadata=getattr(resp, "usage_metadata", {}),
             run_timestamp=now,
-            metrics=get_metrics(text, answer)
+            metrics=get_metrics(text, answer),
         )
 
 
 class ClaudeRunner(ModelRunner):
-    def __init__(self, model="claude-sonnet-4-5-20250929", provider="claude", task=TaskType.Completion):
+    def __init__(self, model="claude-sonnet-4-5-20250929", provider="claude", task=TaskType.Completion, temperature=None, top_p=None, max_tokens=512):
         self.model = model
         self.provider = provider
-        self.client = ChatAnthropic(model_name=self.model, api_key=load_env("CLAUDE_API_KEY"))          # type: ignore
+        self.temperature = temperature
+        self.top_p = top_p
+        if (self.temperature is None and self.top_p is None) or (self.temperature is not None and self.top_p is not None):
+            raise ValueError("Claude requires atleast one of temperature or top_p to be set")
+        self.max_tokens = max_tokens
+        self.client = ChatAnthropic(
+            model_name=self.model,
+            temperature=self.temperature,
+            top_p=self.top_p,
+            max_tokens_to_sample=self.max_tokens,
+            api_key=load_env("CLAUDE_API_KEY")
+        ) # type: ignore
         self.task = task
 
     def generate(self, id: str, query: str, answer: str, process_fn=None) -> GenerationResult:
+        start = time.time()
         resp = self.client.invoke(query)
+        end = time.time()
         text = process_fn(resp) if process_fn is not None else resp.content
+        usage = getattr(resp, 'usage_metadata')
+        usage['latency'] = end - start
+        usage['temperature'] = self.temperature
+        usage['max_tokens'] = self.max_tokens
+        usage['top_p'] = self.top_p
 
         if not isinstance(text, str):
             raise ValueError("process_fn should parse content to `str` type only")
@@ -106,15 +156,31 @@ class ClaudeRunner(ModelRunner):
         )
 
 class GeminiRunner(ModelRunner):
-    def __init__(self, model="gemini-2.5-flash-lite", provider="google", task=TaskType.Completion):
+    def __init__(self, model="gemini-2.5-flash-lite", provider="google", task=TaskType.Completion, temperature=0.0, top_p=1.0, max_tokens=512):
         self.model = model
         self.provider = provider
-        self.client = ChatGoogleGenerativeAI(model=self.model, api_key=load_env("GEMINI_API_KEY"))
+        self.temperature = temperature
+        self.top_p = top_p
+        self.max_tokens = max_tokens
+        self.client = ChatGoogleGenerativeAI(
+            model=self.model,
+            temperature=self.temperature,
+            top_p=self.top_p,
+            max_tokens=self.max_tokens,
+            api_key=load_env("GEMINI_API_KEY"),
+        )
         self.task = task
 
     def generate(self, id: str, query: str, answer: str, process_fn=None) -> GenerationResult:
+        start = time.time()
         resp = self.client.invoke(query)
+        end = time.time()
         text = process_fn(resp) if process_fn is not None else resp.content
+        usage = getattr(resp, 'usage_metadata')
+        usage['latency'] = end - start
+        usage['temperature'] = self.temperature
+        usage['max_tokens'] = self.max_tokens
+        usage['top_p'] = self.top_p
 
         if not isinstance(text, str):
             raise ValueError("process_fn should parse content to `str` type only")

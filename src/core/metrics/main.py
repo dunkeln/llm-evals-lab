@@ -25,14 +25,12 @@ def normalize_text(t: str) -> str:
     t = re.sub(r"\s+", " ", t)
     return t.strip()
 
-def squad(pred: str, ref: str) -> float:
+def token_f1(pred: str, ref: str) -> float:
     pred_tokens, ref_tokens = normalize_text(pred).split(), normalize_text(ref).split()
     if not pred_tokens or not ref_tokens:
         return 0.0
 
-    print(pred_tokens, ref_tokens)
     pred_counts, ref_counts = Counter(pred_tokens), Counter(ref_tokens)
-    print(pred_counts, ref_counts)
     common = pred_counts & ref_counts
     num_common = sum(common.values())
     if num_common == 0:
@@ -46,6 +44,7 @@ def squad(pred: str, ref: str) -> float:
 def get_metrics(x, y):
     return {
         'cos_sim': cosine_similarity(x, y),
+        'token_f1': token_f1(x, y),
     }
 
 
