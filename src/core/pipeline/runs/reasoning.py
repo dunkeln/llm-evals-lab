@@ -1,23 +1,31 @@
-import json
-from src.core.runners import OpenAIRunner, ClaudeRunner, GeminiRunner, SynthesizerModel
+from src.core.runners import DeepseekRunner, OpenAIRunner, ClaudeRunner, GeminiRunner, SynthesizerModel
 from src.core.defs import GenerationResult, JSONLResponse
 from src.core.pipeline.ingest import ingest_jsonl_to_raw
 from src.core.pipeline.writers import write_result_to_jsonl
+from src.config import log
 
+logger = log(__name__)
 
 if __name__ == '__main__':
+    batch_size = 2
     synthesizer = SynthesizerModel(model="gpt-4o")
     runners = [
         OpenAIRunner(),
         ClaudeRunner(temperature=0.1),
         GeminiRunner(),
+        DeepseekRunner()
     ]
 
+    logger.info(f"{len(runners)} models loaded...")
+
     prompt = "Generate basic Statistics questions to solve."
-    dataset = synthesizer.generate(prompt, batch_size=2)
+    dataset = synthesizer.generate(prompt, batch_size=batch_size)
     samples = dataset.samples
 
+    logger.info(f"{batch_size} samples generated....")
+
     records: list[GenerationResult] = []
+    logger.info(f"testing samples...") 
     for sample in samples:
         rows: list[GenerationResult] = []
         query = sample.question
@@ -29,10 +37,12 @@ if __name__ == '__main__':
 
         records.extend(rows)
 
-    print("dataset")
-    print(dataset)
-
+    logger.info(f"Models ran for {len(samples) * len(runners)}...")
     metadata_path, dataset_path, jsonl_path = write_result_to_jsonl(dataset, records)
+    logger.info(f"Ingesting samples to jsonl")
+    logger.info(f"metadata   path: {metadata_path}")
+    logger.info(f"samples    path: {dataset_path}")
+    logger.info(f"generation path: {dataset_path}")
     ingest_jsonl_to_raw(metadata_path, dataset_path, jsonl_path, table_name="models_reasoning")
 
     print("done")

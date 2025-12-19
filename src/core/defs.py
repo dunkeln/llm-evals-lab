@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict, Optional, Protocol
 import os
 
 from langchain_anthropic import ChatAnthropic
+from langchain_deepseek import ChatDeepSeek
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field, SecretStr
@@ -66,7 +67,7 @@ class ModelRunner(Protocol):
     model: str
     provider: str
     task: TaskType
-    client: ChatGoogleGenerativeAI | ChatOpenAI | ChatAnthropic
+    client: ChatGoogleGenerativeAI | ChatOpenAI | ChatAnthropic | ChatDeepSeek
 
 
     def generate(self, id: str, query: str, answer: str, process_fn: ParseFn | None=None) -> GenerationResult:

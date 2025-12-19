@@ -9,6 +9,7 @@ from src.core.defs import GenerationResult, JSONLResponse, ModelRunner, TaskType
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_deepseek import ChatDeepSeek
 from dotenv import load_dotenv
 from src.config import PROJECT_ROOT
 import os
@@ -197,6 +198,51 @@ class GeminiRunner(ModelRunner):
             run_timestamp=now,
             metrics=get_metrics(text, answer)
         )
+
+
+class DeepseekRunner(ModelRunner):
+    def __init__(self, model="deepseek-chat", provider="deepseek", task=TaskType.Completion, temperature=0.0, top_p=1.0, max_tokens=512):
+        self.model = model
+        self.provider = provider
+        self.temperature = temperature
+        self.top_p = top_p
+        self.max_tokens = max_tokens
+        self.client = ChatDeepSeek(
+            model=self.model,
+            temperature=self.temperature,
+            top_p=self.top_p,
+            max_tokens=self.max_tokens,
+            api_key=load_env("DEEPSEEK_API_KEY"),
+        )
+        self.task = task
+
+    def generate(self, id: str, query: str, answer: str, process_fn=None) -> GenerationResult:
+        start = time.time()
+        resp = self.client.invoke(query)
+        end = time.time()
+        text = process_fn(resp) if process_fn is not None else resp.content
+        usage = getattr(resp, 'usage_metadata')
+        usage['latency'] = end - start
+        usage['temperature'] = self.temperature
+        usage['max_tokens'] = self.max_tokens
+        usage['top_p'] = self.top_p
+
+        if not isinstance(text, str):
+            raise ValueError("process_fn should parse content to `str` type only")
+
+        now = datetime.now(timezone.utc).isoformat()
+        return GenerationResult(
+            id=id,
+            model=self.model,
+            provider=self.provider,
+            task=self.task.value if hasattr(self.task, "value") else str(self.task),
+            response_text=text,
+            response_metadata=getattr(resp, "response_metadata", {}),
+            usage_metadata=getattr(resp, "usage_metadata", {}),
+            run_timestamp=now,
+            metrics=get_metrics(text, answer)
+        )
+
 
 if __name__ == "__main__":
     # gpt = OpenAIRunner()

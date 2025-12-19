@@ -12,5 +12,6 @@ select
   (usage_metadata->>'temperature')::float as temperature,
   (usage_metadata->>'max_tokens')::int as max_tokens,
   (usage_metadata->>'top_p')::int as top_p,
-  (metrics->>'cos_sim')::float as cosine_similarity
+  (metrics->>'cos_sim')::float as cosine_similarity,
+  (metrics->>'token_f1')::float as token_f1
 from {{ source('raw', 'models_reasoning') }}
