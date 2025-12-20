@@ -7,7 +7,7 @@ from src.config import log
 logger = log(__name__)
 
 if __name__ == '__main__':
-    batch_size = 2
+    batch_size = 50
     synthesizer = SynthesizerModel(model="gpt-4o")
     runners = [
         OpenAIRunner(),
@@ -18,15 +18,15 @@ if __name__ == '__main__':
 
     logger.info(f"{len(runners)} models loaded...")
 
-    prompt = "Generate basic Statistics questions to solve."
-    dataset = synthesizer.generate(prompt, batch_size=batch_size)
+    prompt = "Generate questions on bayesian reasoning/ base-rate problems."
+    dataset = synthesizer.generate(prompt, total_samples=batch_size, per_batch=5)
     samples = dataset.samples
 
     logger.info(f"{batch_size} samples generated....")
 
     records: list[GenerationResult] = []
     logger.info(f"testing samples...") 
-    for sample in samples:
+    for idx, sample in enumerate(samples):
         rows: list[GenerationResult] = []
         query = sample.question
         ref_answer = sample.answer
@@ -35,6 +35,7 @@ if __name__ == '__main__':
             rec = runner.generate(id, query, ref_answer)
             rows.append(rec)
 
+        logger.info(f"generation complete on sample {idx}/{len(samples)}")
         records.extend(rows)
 
     logger.info(f"Models ran for {len(samples) * len(runners)}...")

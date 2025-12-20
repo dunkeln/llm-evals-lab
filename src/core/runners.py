@@ -5,7 +5,7 @@ import uuid
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel
 
-from src.core.defs import GenerationResult, JSONLResponse, ModelRunner, TaskType, load_env
+from src.core.defs import GenerationResult, JSONResponse, JSONLResponse, ModelRunner, TaskType, load_env
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -23,9 +23,74 @@ load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
 T = TypeVar("T", bound=BaseModel)
 
+# class SynthesizerModel(Generic[T]):
+#     # TODO: for now chatgpt is the only model, need to be provider agnostic
+#     def __init__(self, model: str, output_model: Type[T]=JSONLResponse, temperature=0.0, top_p=1.0, max_tokens=1024) -> None:
+#         self.model = model
+#         self.temperature = temperature
+#         self.top_p = top_p
+#         self.max_tokens = max_tokens
+#         self.client = ChatOpenAI(
+#             model=self.model,
+#             api_key=load_env("OPENAI_API_KEY"),
+#             temperature=self.temperature,
+#             top_p=self.top_p,
+#             max_completion_tokens=self.max_tokens
+#         )
+#         self.output_model = output_model
+#         self.structured_client = self.client.with_structured_output(self.output_model)
+# 
+#     
+#     def __samples_set_generate(self, system_prompt: str, query: str, id: str):
+#         messages = [
+#             SystemMessage(content=system_prompt),
+#             HumanMessage(content=query)
+#         ]
+# 
+#         result = cast(JSONLResponse, self.structured_client.invoke(messages))
+#         return result
+# 
+#     def generate(self, query: str, batch_size: int = 10) -> JSONLResponse:
+#         system_prompt = f"""
+#         You are a data synthesis assistant. Follow the instructions in the user
+#         message and generate clean, well-structured text suitable as part of an
+#         evaluation dataset. Do not answer anything except the output for the
+#         requested content in jsonl. Generate {batch_size} such content.
+# 
+#         REMEMBER: output *ONLY* jsonl object of size {batch_size}, no extra text.
+#         """
+#         system_prompt = system_prompt.strip()
+# 
+#         # INFO: shared run id for this synthesized batch
+#         run_id = str(uuid.uuid4())
+# 
+#         result = self.__samples_set_generate(
+#             system_prompt=system_prompt,
+#             query=query,
+#             id=run_id,
+#         )
+# 
+#         result.id = run_id
+#         for sample in result.samples:
+#             sample.id = str(uuid.uuid4())
+#             sample.metadata = run_id
+# 
+#         result.model = self.model
+#         result.temperature = self.temperature
+#         result.top_p = self.top_p
+#         result.max_tokens = self.max_tokens
+#         return result
+
 class SynthesizerModel(Generic[T]):
     # TODO: for now chatgpt is the only model, need to be provider agnostic
-    def __init__(self, model: str, output_model: Type[T]=JSONLResponse, temperature=0.0, top_p=1.0, max_tokens=512) -> None:
+    def __init__(
+        self,
+        model: str,
+        output_model: Type[T] = JSONLResponse,
+        temperature: float = 0.0,
+        top_p: float = 1.0,
+        max_tokens: int = 2048,
+    ) -> None:
         self.model = model
         self.temperature = temperature
         self.top_p = top_p
@@ -35,37 +100,73 @@ class SynthesizerModel(Generic[T]):
             api_key=load_env("OPENAI_API_KEY"),
             temperature=self.temperature,
             top_p=self.top_p,
-            max_completion_tokens=self.max_tokens
+            max_completion_tokens=self.max_tokens,
         )
         self.output_model = output_model
         self.structured_client = self.client.with_structured_output(self.output_model)
 
-    def generate(self, query: str, batch_size: int=10):
-        system_prompt = f"""
-        You are a data synthesis assistant. Follow the instructions in the user
-        message and generate clean, well-structured text suitable as part of an
-        evaluation dataset. Do not answer anything except the output for the
-        requested content in jsonl. Generate {batch_size} such content.
-
-        REMEMBER: output *ONLY* jsonl object of size {batch_size}, no extra text.
-        """
-        system_prompt = system_prompt.strip()
-        messages = []
-
-        if system_prompt:
-            messages.append(SystemMessage(content=system_prompt))
-        messages.append(HumanMessage(content=query))
-
-        result: JSONLResponse = cast(JSONLResponse, self.structured_client.invoke(messages))
-        result.id = str(uuid.uuid4())
-        for sample in result.samples:
-            sample.id = str(uuid.uuid4())
-            sample.metadata = result.id
-        result.model = self.model
-        result.temperature = self.temperature
-        result.top_p = self.top_p
-        result.max_tokens = self.max_tokens
+    def __samples_set_generate(
+        self,
+        system_prompt: str,
+        query: str,
+    ) -> JSONLResponse:
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=query),
+        ]
+        result = cast(JSONLResponse, self.structured_client.invoke(messages))
         return result
+
+    def generate(
+        self,
+        query: str,
+        total_samples: int = 10,
+        per_batch: int = 5,
+    ) -> JSONLResponse:
+        """
+        Generate `total_samples` examples in chunks of size <= per_batch.
+        All samples share a common run_id in result.id and sample.metadata.
+        """
+        run_id = str(uuid.uuid4())
+        all_samples: list[JSONResponse] = []
+        remaining = total_samples
+
+        while remaining > 0:
+            this_batch = min(per_batch, remaining)
+
+            system_prompt = f"""
+            You are a data synthesis assistant. Follow the instructions in the user
+            message and generate clean, well-structured text suitable as part of an
+            evaluation dataset. Do not answer anything except the output for the
+            requested content in jsonl. Generate {this_batch} such content.
+
+            REMEMBER: output *ONLY* jsonl object of size {this_batch}, no extra text.
+            """.strip()
+
+            batch_resp = self.__samples_set_generate(
+                system_prompt=system_prompt,
+                query=query,
+            )
+
+            for sample in batch_resp.samples:
+                sample.id = str(uuid.uuid4())
+                sample.metadata = run_id
+                all_samples.append(sample)
+
+            remaining = total_samples - len(all_samples)
+
+        # build a single aggregated JSONLResponse
+        aggregated = JSONLResponse(
+            id=run_id,
+            batch=len(all_samples),
+            model=self.model,
+            temperature=self.temperature,
+            top_p=self.top_p,
+            max_tokens=self.max_tokens,
+            samples=all_samples,
+        )
+        return aggregated
+
 
 class OpenAIRunner(ModelRunner):
     def __init__(self, model="gpt-4.1", provider="openai", task=TaskType.Completion, temperature=0.0, top_p=1.0, max_tokens=512):

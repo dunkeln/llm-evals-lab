@@ -20,7 +20,7 @@ class JSONResponse(BaseModel):
     question: str
     answer: str
     explanation: str
-    difficulty: str
+    difficulty: str = Field(..., description="States the difficulty of the question to be one of Easy, Medium, Intermediate, Difficulty, Super Difficult.")
     metadata: str
 
 class JSONLResponse(BaseModel):

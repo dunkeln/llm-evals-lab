@@ -21,9 +21,15 @@ dataset as (
   {%if is_incremental() %}
     where id not in (select distinct id from {{ this }} )
   {% endif %}
+),
+metadata as (
+  select *
+  from {{ ref('stg_models_reasoning_metadata') }}
 )
 select d.*, r.* 
   from dataset d
   join results r
   on r.id = d.id
+  join metadata m
+  on m.id = d.metadata
   order by r.run_timestamp
