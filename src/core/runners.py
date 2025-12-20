@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 from src.config import PROJECT_ROOT
 import os
 
-from typing import Any, Generic, Type, TypeVar, cast
+from typing import Generic, Type, TypeVar, cast
 
 from src.core.metrics import get_metrics
 
@@ -22,64 +22,6 @@ load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
 
 T = TypeVar("T", bound=BaseModel)
-
-# class SynthesizerModel(Generic[T]):
-#     # TODO: for now chatgpt is the only model, need to be provider agnostic
-#     def __init__(self, model: str, output_model: Type[T]=JSONLResponse, temperature=0.0, top_p=1.0, max_tokens=1024) -> None:
-#         self.model = model
-#         self.temperature = temperature
-#         self.top_p = top_p
-#         self.max_tokens = max_tokens
-#         self.client = ChatOpenAI(
-#             model=self.model,
-#             api_key=load_env("OPENAI_API_KEY"),
-#             temperature=self.temperature,
-#             top_p=self.top_p,
-#             max_completion_tokens=self.max_tokens
-#         )
-#         self.output_model = output_model
-#         self.structured_client = self.client.with_structured_output(self.output_model)
-# 
-#     
-#     def __samples_set_generate(self, system_prompt: str, query: str, id: str):
-#         messages = [
-#             SystemMessage(content=system_prompt),
-#             HumanMessage(content=query)
-#         ]
-# 
-#         result = cast(JSONLResponse, self.structured_client.invoke(messages))
-#         return result
-# 
-#     def generate(self, query: str, batch_size: int = 10) -> JSONLResponse:
-#         system_prompt = f"""
-#         You are a data synthesis assistant. Follow the instructions in the user
-#         message and generate clean, well-structured text suitable as part of an
-#         evaluation dataset. Do not answer anything except the output for the
-#         requested content in jsonl. Generate {batch_size} such content.
-# 
-#         REMEMBER: output *ONLY* jsonl object of size {batch_size}, no extra text.
-#         """
-#         system_prompt = system_prompt.strip()
-# 
-#         # INFO: shared run id for this synthesized batch
-#         run_id = str(uuid.uuid4())
-# 
-#         result = self.__samples_set_generate(
-#             system_prompt=system_prompt,
-#             query=query,
-#             id=run_id,
-#         )
-# 
-#         result.id = run_id
-#         for sample in result.samples:
-#             sample.id = str(uuid.uuid4())
-#             sample.metadata = run_id
-# 
-#         result.model = self.model
-#         result.temperature = self.temperature
-#         result.top_p = self.top_p
-#         result.max_tokens = self.max_tokens
-#         return result
 
 class SynthesizerModel(Generic[T]):
     # TODO: for now chatgpt is the only model, need to be provider agnostic

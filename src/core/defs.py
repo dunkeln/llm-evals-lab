@@ -56,7 +56,7 @@ class GenerationResult:
 def load_env(name: str) -> SecretStr:
     value = os.getenv(name)
     if value is None:
-        raise RuntimeError(f"Requied env {name} is not set.")
+        raise RuntimeError(f"Required env {name} is not set.")
 
     return SecretStr(value)
 

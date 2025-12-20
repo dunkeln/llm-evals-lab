@@ -7,7 +7,7 @@ from src.config import log
 logger = log(__name__)
 
 if __name__ == '__main__':
-    batch_size = 50
+    batch_size = 5
     synthesizer = SynthesizerModel(model="gpt-4o")
     runners = [
         OpenAIRunner(),
@@ -25,7 +25,7 @@ if __name__ == '__main__':
     logger.info(f"{batch_size} samples generated....")
 
     records: list[GenerationResult] = []
-    logger.info(f"testing samples...") 
+    logger.info(f"evaluating models on samples...") 
     for idx, sample in enumerate(samples):
         rows: list[GenerationResult] = []
         query = sample.question
@@ -35,7 +35,7 @@ if __name__ == '__main__':
             rec = runner.generate(id, query, ref_answer)
             rows.append(rec)
 
-        logger.info(f"generation complete on sample {idx}/{len(samples)}")
+        logger.info(f"generation complete on sample {idx + 1}/{len(samples)}")
         records.extend(rows)
 
     logger.info(f"Models ran for {len(samples) * len(runners)}...")
@@ -45,5 +45,4 @@ if __name__ == '__main__':
     logger.info(f"samples    path: {dataset_path}")
     logger.info(f"generation path: {dataset_path}")
     ingest_jsonl_to_raw(metadata_path, dataset_path, jsonl_path, table_name="models_reasoning")
-
-    print("done")
+    logger.info("Finished.")

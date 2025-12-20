@@ -8,8 +8,13 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 from sentence_transformers import SentenceTransformer, util
 from src.core.defs import LLMJudgeResult, load_env
+from src.config import PROJECT_ROOT
+import os
+from dotenv import load_dotenv
 
 EMBED_MODEL = SentenceTransformer("all-MiniLM-L6-v2")
+
+load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
 def cosine_similarity(pred: str, ref: str) -> float:
     if not pred or not ref:
@@ -91,4 +96,4 @@ def get_metrics(x, y):
 
 if __name__ == "__main__":
     # print(get_metrics("I am batman", "who is the batman?"))
-    print(get_metrics("this is 11", "11 is the answer"))
+    print(get_metrics("this is 11", "I am batman"))
