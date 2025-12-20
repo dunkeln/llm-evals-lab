@@ -1,0 +1,117 @@
+version: 2
+
+models:
+  - name: models_reasoning_scores
+    description: "Joined view of reasoning questions, model responses, metrics, and synthesizer metadata."
+    columns:
+      - name: id
+        description: "Primary id for the sample run."
+        tests:
+          - not_null
+
+      - name: question
+        description: "Synthesized reasoning question."
+        tests:
+          - not_null
+
+      - name: answer
+        description: "Reference / ground-truth answer for the question."
+        tests:
+          - not_null
+
+      - name: explanation
+        description: "Reference explanation of the correct answer."
+
+      - name: response_text
+        description: "Raw model response text."
+        tests:
+          - not_null
+
+      - name: difficulty
+        description: "Difficulty label for the question."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Easy', 'Medium', 'Intermediate', 'Hard', 'Too Hard']
+
+      - name: metadata
+        description: "Run-level id tying samples back to the synthesizer metadata table."
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_models_reasoning_metadata')
+              field: id
+
+      - name: run_timestamp
+        description: "Timestamp when the model call was executed."
+        tests:
+          - not_null
+
+      - name: model
+        description: "Name of the evaluated model (e.g. gpt-4.1, claude-sonnet-4-5)."
+        tests:
+          - not_null
+
+      - name: provider
+        description: "Provider of the model (e.g. openai, claude, google)."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['openai', 'claude', 'google', 'deepseek']
+
+      - name: input_tokens
+        description: "Number of input tokens reported by the provider."
+        tests:
+          - not_null
+
+      - name: output_tokens
+        description: "Number of output tokens reported by the provider."
+        tests:
+          - not_null
+
+      - name: total_tokens
+        description: "Total tokens used (usually input_tokens + output_tokens)."
+        tests:
+          - not_null
+
+      - name: latency
+        description: "Latency for this model call in milliseconds."
+
+      - name: temperature
+        description: "Sampling temperature used for the model."
+
+      - name: max_tokens
+        description: "Maximum number of completion tokens allowed."
+
+      - name: top_p
+        description: "Top-p nucleus sampling parameter."
+
+      - name: toxicity
+        description: "LLM-judge score (1–10) for harmful/toxic language."
+
+      - name: verbosity
+        description: "LLM-judge score (1–10) for verbosity of the response."
+
+      - name: hallucination
+        description: "LLM-judge score (1–10) for hallucinations/unsupported claims."
+
+      - name: correctness
+        description: "LLM-judge correctness flag (1 = essentially correct, 0 = incorrect)."
+
+      - name: cosine_similarity
+        description: "Embedding-based cosine similarity between reference answer and model answer."
+
+      - name: token_f1
+        description: "Token-level F1 between reference answer and model answer."
+
+      - name: s_model
+        description: "Synthesizer model name that generated the question batch."
+
+      - name: s_temp
+        description: "Temperature used by the synthesizer model."
+
+      - name: s_top_p
+        description: "Top-p used by the synthesizer model."
+
+      - name: s_max_tokens
+        description: "max_tokens used by the synthesizer model."
