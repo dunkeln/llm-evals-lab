@@ -26,7 +26,7 @@ def _(df):
 def _(df, mo):
     _df = mo.sql(
         f"""
-        select id, answer, response_text, correctness, input_tokens, output_tokens, total_tokens, latency, temperature, max_tokens, top_p, cosine_similarity, token_f1, toxicity, verbosity, hallucination from df;
+        select id, model, answer, response_text, correctness, input_tokens, output_tokens, total_tokens, latency, temperature, max_tokens, top_p, cosine_similarity, token_f1, toxicity, verbosity, hallucination from df;
         """
     )
     return

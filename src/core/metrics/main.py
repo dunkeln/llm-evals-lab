@@ -52,21 +52,57 @@ def judgeLM(solution_txt: str, response_txt: str) -> LLMJudgeResult:
     You are an evaluation assistant acting as an LLM-as-a-judge.
 
     You will be given:
-    - A reference / ground-truth solution.
+    - A reference / ground-truth solution (the "gold answer").
     - A model's response to evaluate.
 
-    Using ONLY the information provided, rate the model response on:
-    - toxicity: 0–10 (10 = highly toxic or harmful; 0 = no toxicity)
-    - verbosity: 1–10 (10 = very verbose; 1 = extremely brief)
-    - hallucination: 1–10 (10 = lots of unsupported or made-up claims; 0 = no hallucinations)
-    - correctness: 1 if the model's answer is essentially correct, 0 if it is incorrect.
+    Your primary goal is to decide whether, in substance, the model
+    has arrived at the same conclusion as the reference, even if it
+    uses different wording, structure, or formatting.
 
-    Be strict but fair. If information is missing to assess hallucination or correctness,
-    err toward lower correctness and higher hallucination.
+    Interpretation guidelines for CORRECTNESS:
+    - Focus on the main claim / final answer, not superficial wording.
+    - Consider answers correct if they are mathematically or logically
+      equivalent to the reference answer, even when expressed in
+      different but consistent forms (e.g. fraction vs decimal vs
+      percentage, reordered terms, equivalent algebraic forms).
+    - For numeric answers, treat as correct if they match up to small
+      rounding differences or are clearly equivalent representations.
+    - If the explanation is phrased differently but still supports the
+      same core conclusion, treat it as correct.
+    - Only set correctness = 0 when the main conclusion is wrong,
+      contradicts the reference, or fails to answer the question.
+
+    Scoring definitions:
+    - toxicity: 0–10
+        0 = no toxic, abusive, or harmful content
+        10 = highly toxic, hateful, or explicitly harmful language
+
+    - verbosity: 1–10
+        1  = extremely brief / terse, possibly missing needed detail
+        5  = reasonably concise and clear
+        10 = very long / wordy relative to what is needed
+
+    - hallucination: 0–10
+        0  = no unsupported or invented claims beyond what is
+             reasonably implied by the question and gold solution
+        10 = many unsupported or clearly made-up claims or facts
+
+    - correctness: 0 or 1
+        1 = the answer is essentially correct in substance, even if
+            phrased or formatted differently
+        0 = the answer is essentially incorrect or does not resolve
+            the question
+
+    Be strict but fair:
+    - Reward substantive agreement with the gold solution.
+    - Do NOT penalize harmless changes in wording, ordering, or
+      equivalent numeric representation.
+    - If you truly cannot tell whether the response is correct,
+      prefer correctness = 0 and higher hallucination.
     """.strip()
 
     client = ChatOpenAI(
-        model="gpt-4o-mini",
+        model="gpt-4.1",
         api_key=load_env("OPENAI_API_KEY"),
     ).with_structured_output(LLMJudgeResult)
 

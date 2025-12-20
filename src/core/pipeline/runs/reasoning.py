@@ -8,12 +8,12 @@ logger = log(__name__)
 
 if __name__ == '__main__':
     batch_size = 5
-    synthesizer = SynthesizerModel(model="gpt-4o")
+    synthesizer = SynthesizerModel(model="gpt-4.1")
     runners = [
-        OpenAIRunner(),
-        ClaudeRunner(temperature=0.1),
-        GeminiRunner(),
-        DeepseekRunner()
+        OpenAIRunner(model="gpt-4o-mini"),
+        ClaudeRunner(model="claude-haiku-4-5-20251001", temperature=0.1),
+        GeminiRunner(model="gemini-2.0-flash"),
+        DeepseekRunner(model="deepseek-chat")
     ]
 
     logger.info(f"{len(runners)} models loaded...")
