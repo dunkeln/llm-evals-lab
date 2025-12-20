@@ -346,12 +346,6 @@ class DeepseekRunner(ModelRunner):
 
 
 if __name__ == "__main__":
-    # gpt = OpenAIRunner()
-    # claude = ClaudeRunner()
-    # gemini = GeminiRunner()
-    # print(gpt.generate("I am batman"))
-    # print(claude.generate("I am batman"))
-    # print(gemini.generate("I am batman"))
     synthesizer = SynthesizerModel(model="gpt-4o", output_model=JSONLResponse)
     prompt = """
     Generate reasoning questions about basic statistics.

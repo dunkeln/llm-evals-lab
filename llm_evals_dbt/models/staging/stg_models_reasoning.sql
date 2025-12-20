@@ -12,6 +12,10 @@ select
   (usage_metadata->>'temperature')::float as temperature,
   (usage_metadata->>'max_tokens')::int as max_tokens,
   (usage_metadata->>'top_p')::int as top_p,
-  (metrics->>'cos_sim')::float as cosine_similarity,
-  (metrics->>'token_f1')::float as token_f1
+  (metrics->>'cosine_similarity')::float as cosine_similarity,
+  (metrics->>'token_f1')::float as token_f1,
+  (metrics->>'toxicity')::int as toxicity,
+  (metrics->>'verbosity')::int as verbosity,
+  (metrics->>'hallucination')::int as hallucination,
+  (metrics->>'correctness')::int as correctness
 from {{ source('raw', 'models_reasoning') }}
