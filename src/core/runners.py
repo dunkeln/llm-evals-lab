@@ -126,9 +126,9 @@ class OpenAIRunner(ModelRunner):
         )
         self.task = task
 
-    def generate(self, id: str, query: str, answer: str, process_fn=None) -> GenerationResult:
+    async def generate(self, id: str, query: str, answer: str, process_fn=None) -> GenerationResult:
         start = time.time()
-        resp = self.client.invoke(query)
+        resp = await self.client.ainvoke(query)
         end = time.time()
         text = process_fn(resp) if process_fn is not None else resp.content
         usage = getattr(resp, 'usage_metadata')
@@ -150,7 +150,7 @@ class OpenAIRunner(ModelRunner):
             response_metadata=getattr(resp, "response_metadata", {}),
             usage_metadata=getattr(resp, "usage_metadata", {}),
             run_timestamp=now,
-            metrics=get_metrics(text, answer),
+            metrics=await get_metrics(text, answer),
         )
 
 
@@ -172,9 +172,9 @@ class ClaudeRunner(ModelRunner):
         ) # type: ignore
         self.task = task
 
-    def generate(self, id: str, query: str, answer: str, process_fn=None) -> GenerationResult:
+    async def generate(self, id: str, query: str, answer: str, process_fn=None) -> GenerationResult:
         start = time.time()
-        resp = self.client.invoke(query)
+        resp = await self.client.ainvoke(query)
         end = time.time()
         text = process_fn(resp) if process_fn is not None else resp.content
         usage = getattr(resp, 'usage_metadata')
@@ -196,7 +196,7 @@ class ClaudeRunner(ModelRunner):
             response_metadata=getattr(resp, "response_metadata", {}),
             usage_metadata=getattr(resp, "usage_metadata", {}),
             run_timestamp=now,
-            metrics=get_metrics(text, answer)
+            metrics=await get_metrics(text, answer)
         )
 
 class GeminiRunner(ModelRunner):
@@ -215,9 +215,9 @@ class GeminiRunner(ModelRunner):
         )
         self.task = task
 
-    def generate(self, id: str, query: str, answer: str, process_fn=None) -> GenerationResult:
+    async def generate(self, id: str, query: str, answer: str, process_fn=None) -> GenerationResult:
         start = time.time()
-        resp = self.client.invoke(query)
+        resp = await self.client.ainvoke(query)
         end = time.time()
         text = process_fn(resp) if process_fn is not None else resp.content
         usage = getattr(resp, 'usage_metadata')
@@ -239,7 +239,7 @@ class GeminiRunner(ModelRunner):
             response_metadata=getattr(resp, "response_metadata", {}),
             usage_metadata=getattr(resp, "usage_metadata", {}),
             run_timestamp=now,
-            metrics=get_metrics(text, answer)
+            metrics=await get_metrics(text, answer)
         )
 
 
@@ -259,9 +259,9 @@ class DeepseekRunner(ModelRunner):
         )
         self.task = task
 
-    def generate(self, id: str, query: str, answer: str, process_fn=None) -> GenerationResult:
+    async def generate(self, id: str, query: str, answer: str, process_fn=None) -> GenerationResult:
         start = time.time()
-        resp = self.client.invoke(query)
+        resp = await self.client.ainvoke(query)
         end = time.time()
         text = process_fn(resp) if process_fn is not None else resp.content
         usage = getattr(resp, 'usage_metadata')
@@ -283,7 +283,7 @@ class DeepseekRunner(ModelRunner):
             response_metadata=getattr(resp, "response_metadata", {}),
             usage_metadata=getattr(resp, "usage_metadata", {}),
             run_timestamp=now,
-            metrics=get_metrics(text, answer)
+            metrics=await get_metrics(text, answer)
         )
 
 

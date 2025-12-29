@@ -70,7 +70,7 @@ class ModelRunner(Protocol):
     client: ChatGoogleGenerativeAI | ChatOpenAI | ChatAnthropic | ChatDeepSeek
 
 
-    def generate(self, id: str, query: str, answer: str, process_fn: ParseFn | None=None) -> GenerationResult:
+    async def generate(self, id: str, query: str, answer: str, process_fn: ParseFn | None=None) -> GenerationResult:
         ...
 
 class LLMJudgeResult(BaseModel):

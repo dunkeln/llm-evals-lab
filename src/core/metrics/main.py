@@ -2,6 +2,7 @@
 # - [ ] embedding similarity
 # - [ ] semantic similarity metrics
 # - [ ] llm as judge
+import asyncio
 import re
 from typing import Counter, cast
 from langchain_openai import ChatOpenAI
@@ -47,7 +48,7 @@ def token_f1(pred: str, ref: str) -> float:
     recall = num_common / len(ref_tokens)
     return 2 * precision * recall / (precision + recall)
 
-def judgeLM(solution_txt: str, response_txt: str) -> LLMJudgeResult:
+async def judgeLM(solution_txt: str, response_txt: str) -> LLMJudgeResult:
     system_prompt = """
     You are an evaluation assistant acting as an LLM-as-a-judge.
 
@@ -119,17 +120,24 @@ def judgeLM(solution_txt: str, response_txt: str) -> LLMJudgeResult:
         ),
     ]
 
-    result: LLMJudgeResult = cast(LLMJudgeResult, client.invoke(messages))
+    result: LLMJudgeResult = cast(LLMJudgeResult, await client.ainvoke(messages))
     return result
 
-def get_metrics(x, y):
-    judgeLM_metrics = judgeLM(x, y)
+async def get_metrics(x, y):
+    judge_task = asyncio.create_task(judgeLM(x, y))
+    cosine_task = asyncio.to_thread(cosine_similarity, x, y)
+    f1_task = asyncio.to_thread(token_f1, x, y)
+    judgeLM_metrics, cosine_similarity_score, token_f1_score = await asyncio.gather(
+        judge_task,
+        cosine_task,
+        f1_task,
+    )
     return {
-        'cosine_similarity': cosine_similarity(x, y),
-        'token_f1': token_f1(x, y),
+        'cosine_similarity': cosine_similarity_score,
+        'token_f1': token_f1_score,
         **judgeLM_metrics.model_dump()
     }
 
 if __name__ == "__main__":
     # print(get_metrics("I am batman", "who is the batman?"))
-    print(get_metrics("this is 11", "I am batman"))
+    print(asyncio.run(get_metrics("this is 11", "I am batman")))
